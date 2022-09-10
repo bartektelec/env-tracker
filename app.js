@@ -1,5 +1,6 @@
 // Require the Bolt package (github.com/slackapi/bolt)
 const { App } = require("@slack/bolt");
+const getMessage = require('./getMessage.js');
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -13,6 +14,8 @@ const createEnv = () => ({
   })
 const TIME_OFFSET = 2 * 60 * 60 * 1000;
 
+const separator = "\n〰️〰️〰️〰️〰️〰️\n";
+
 
 const projects = ['pg', 'pg.client', 'pg.hosting.client'];
 const envs = ['dev', 'staging'];
@@ -21,18 +24,41 @@ let store = projects.reduce((acc, curr) => ({...acc, [curr]:
                                             envs.reduce((acc,curr) => ({...acc, [curr]: createEnv()}),{})
                                            }) ,{})
 
-const getParsedTime = (t) => new Date(t).getHours() + ":" + new Date(t).getMinutes()
-const getEnvStatus = (p, e) => `🧪*${e}*: ${store[p][e].busy ? `Taken by ${store[p][e].user} until ${getParsedTime(store[p][e].timestamp)}` : "Free"}`;
+const getParsedTime = (t) => String(new Date(t + TIME_OFFSET).getHours()).padStart(2,"0") + ":" + String(new Date(t + TIME_OFFSET).getMinutes()).padStart(2,"0")
+const getEnvStatus = (p, e) => `🧪 *${e}*: ${store[p][e].busy ? `🔒 Locked by ${store[p][e].user} until ${getParsedTime(store[p][e].timestamp)} - (${getMinutesRemaining(store[p][e].timestamp)} minutes left)` : "🔓 Free"}`;
 const getProjectStatus = (p) =>  `ℹ️ ${p}` + "\n" + envs.map(e => getEnvStatus(p,e)).join("\n");
 
-const getCurrentStatus = () => "〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️\n‼️ Current status ‼️ \n〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️\n" + projects.map(getProjectStatus).join("\n---------\n");
+const getMinutesRemaining = (t) => Math.floor((t - Date.now()) / 60000);
+
+const getCurrentStatus = () => separator + "‼️ Current status ‼️" + separator + projects.map(getProjectStatus).join(separator);
+
+const updateAllStates = () => {
+  Object.entries(store).forEach(([key, val]) => {
+    
+    Object.entries(val).forEach(([eKey, eVal]) => {
+      
+        if(Date.now() >= eVal.timestamp) {
+          eVal.busy = false;
+          eVal.timestamp = 0;
+          eVal.user = "";
+        }
+      
+    })
+    
+  })
+}
 
 app.command('/lock', async ({ command, ack, client, say }) => {
   // Acknowledge command request
   ack();
-  console.log(command);
   
-  const args = command.text.split(" ");
+  await lock(command.text, command.user_name, say);
+});
+
+const lock = async (argString, user_name, say) => {
+  updateAllStates();
+  
+  const args = argString.split(" ");
   
   if(args.length < 2) {
     say("❌ Specify project, env");
@@ -51,24 +77,93 @@ app.command('/lock', async ({ command, ack, client, say }) => {
     await say(`❌ ${_project} doesn't have env called ${_env}`);
     return;
   }
-
-    
-  store[_project][_env].user = command.user_name;
-  store[_project][_env].busy = true;
-  store[_project][_env].timestamp = Date.now() + (_time * 1000 * 60) + TIME_OFFSET;
   
   const current = store[_project][_env];
   
-  await say(`⚠️ ${_project}/${_env} is *locked* by ${current.user} until ${getParsedTime(current.timestamp)}`);
-  await say(getCurrentStatus());
-});
+  if(current.busy && current.user !== user_name) {
+    await say(`❌🔒 Sorry, ${_project}/${_env} is currently locked by @${current.user} until ${getParsedTime(current.timestamp)}. Try again later or ask them to unlock.`);
+    return;
+  }
+    
+  current.user = user_name;
+  current.busy = true;
+  current.timestamp = Date.now() + (_time * 1000 * 60);
+  
+  await say(`✅🔒 ${_project}/${_env} is now *locked* by @${current.user} until ${getParsedTime(current.timestamp)}`);
+  await say(getMessage(store));
+}
+
+app.action("overflow-action", async ({ack, payload, action, say}) => {
+  ack();
+
+  console.log('action', payload);
+  
+  await lock(action.selected_option.value, "bartek", say);
+  say("Clicked");
+})
+
+app.action("refresh", ({ack, say, action}) => {
+  ack();
+  updateAllStates();
+  
+  say(getMessage(store));
+})
 
 
 app.command('/unlock', async ({ command, ack, say }) => {
+  updateAllStates();
   // Acknowledge command request
   ack();
-  console.log(command.text);
-  console.log('Hey now');
+  
+  const {user_name, text} = command;
+  
+  const [p, e] = text.split(" ");
+  
+  if(!e) {
+    await say(`❌ Which env do you want to unlock, ${user_name}?`);
+    return;
+  };
+  
+    if(!p) {
+    await say(`❌ Which project and env do you want to unlock, ${user_name}?`);
+    return;
+  }
+  
+  const current = store[p][e];
+  
+  if(current.user !== user_name) {
+    await say(`❌ This project/env is not locked by you ${user_name}, ask ${current.user} to unlock it`);
+    return;
+  }
+  
+  current.user = "";
+  current.busy = false;
+  current.timestamp = 0;
+  updateAllStates();
+  
+  await say(getMessage(store))
+  
+});
+
+app.command('/info', async ({ command, ack, say }) => {
+  // Acknowledge command request
+  ack();
+  updateAllStates();
+  
+  if(!command.text) {
+    await say(getCurrentStatus());
+    return;
+  }
+  
+  const [_project, _env] = command.text.split(" ");
+  
+  if(!_env) {
+    await say(getProjectStatus(_project));
+    return;
+  }
+  
+  await say(getEnvStatus(_project, _env));
+  
 });
 // All the room in the world for your code
 
