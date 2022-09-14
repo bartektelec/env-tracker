@@ -7,10 +7,11 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "@slack/bolt": "^1.6.0"
+    "@slack/bolt": "^3.12.1",
+    "redis": "^4.3.1"
   },
   "engines": {
-    "node": "11.x"
+    "node": "14.x"
   },
   "repository": {
     "url": "https://glitch.com/edit/#!/bolt-app-template"

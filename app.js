@@ -1,17 +1,41 @@
 // Require the Bolt package (github.com/slackapi/bolt)
 const { App } = require("@slack/bolt");
 const getMessage = require('./getMessage.js');
+const dbclient = require('./db.js');
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET
 });
 
-const createEnv = () => ({
-    user: "",
-    busy: false,
-    timestamp: 0
-  })
+const initDb = async () => {
+  await dbclient.connect();
+  
+//   for await(const p of projects) {
+    
+//     for await(const e of envs) {
+      
+//       await dbclient.hSet(p, e, JSON.stringify(createEnv()));
+       
+//     }
+    
+//   }
+  
+  
+  await getFromDB();
+  
+  
+}
+
+const getFromDB = async () => {
+  store = JSON.parse(await dbclient.get('store'));
+}
+
+const saveToDB = async () => {
+  await dbclient.set('store', JSON.stringify(store));
+}
+
+
 const TIME_OFFSET = 2 * 60 * 60 * 1000;
 
 const separator = "\n〰️〰️〰️〰️〰️〰️\n";
@@ -20,9 +44,9 @@ const separator = "\n〰️〰️〰️〰️〰️〰️\n";
 const projects = ['pg', 'pg.client', 'pg.hosting.client'];
 const envs = ['dev', 'staging'];
 
-let store = projects.reduce((acc, curr) => ({...acc, [curr]: 
-                                            envs.reduce((acc,curr) => ({...acc, [curr]: createEnv()}),{})
-                                           }) ,{})
+let store = {};
+
+initDb();
 
 const getParsedTime = (t) => String(new Date(t + TIME_OFFSET).getHours()).padStart(2,"0") + ":" + String(new Date(t + TIME_OFFSET).getMinutes()).padStart(2,"0")
 const getEnvStatus = (p, e) => `🧪 *${e}*: ${store[p][e].busy ? `🔒 Locked by ${store[p][e].user} until ${getParsedTime(store[p][e].timestamp)} - (${getMinutesRemaining(store[p][e].timestamp)} minutes left)` : "🔓 Free"}`;
@@ -32,7 +56,10 @@ const getMinutesRemaining = (t) => Math.floor((t - Date.now()) / 60000);
 
 const getCurrentStatus = () => separator + "‼️ Current status ‼️" + separator + projects.map(getProjectStatus).join(separator);
 
-const updateAllStates = () => {
+const updateAllStates = async () => {
+  await getFromDB();
+  
+  
   Object.entries(store).forEach(([key, val]) => {
     
     Object.entries(val).forEach(([eKey, eVal]) => {
@@ -46,6 +73,8 @@ const updateAllStates = () => {
     })
     
   })
+  
+  await saveToDB();
 }
 
 app.command('/lock', async ({ command, ack, client, say }) => {
@@ -56,7 +85,7 @@ app.command('/lock', async ({ command, ack, client, say }) => {
 });
 
 const lock = async (argString, user_name, say) => {
-  updateAllStates();
+  await updateAllStates();
   
   const args = argString.split(" ");
   
@@ -90,6 +119,7 @@ const lock = async (argString, user_name, say) => {
   current.timestamp = Date.now() + (_time * 1000 * 60);
   
   await say(`✅🔒 ${_project}/${_env} is now *locked* by @${current.user} until ${getParsedTime(current.timestamp)}`);
+  await saveToDB();
   await say(getMessage(store));
 }
 
@@ -102,16 +132,17 @@ app.action("overflow-action", async ({ack, payload, action, say}) => {
   say("Clicked");
 })
 
-app.action("refresh", ({ack, say, action}) => {
+app.action("refresh", async ({ack, say, action}) => {
   ack();
-  updateAllStates();
+  await updateAllStates();
   
-  say(getMessage(store));
+  
+  await say(getMessage(store));
 })
 
 
 app.command('/unlock', async ({ command, ack, say }) => {
-  updateAllStates();
+  await updateAllStates();
   // Acknowledge command request
   ack();
   
@@ -139,7 +170,7 @@ app.command('/unlock', async ({ command, ack, say }) => {
   current.user = "";
   current.busy = false;
   current.timestamp = 0;
-  updateAllStates();
+  await updateAllStates();
   
   await say(getMessage(store))
   
@@ -148,7 +179,7 @@ app.command('/unlock', async ({ command, ack, say }) => {
 app.command('/info', async ({ command, ack, say }) => {
   // Acknowledge command request
   ack();
-  updateAllStates();
+  await updateAllStates();
   
   if(!command.text) {
     await say(getCurrentStatus());
