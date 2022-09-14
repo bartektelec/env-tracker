@@ -84,6 +84,7 @@ const lock = async (argString, user_name, say) => {
   const [_project, _env, _time = 30] = args;
   
   
+  
   if(!store[_project]) {
     await say(`❌ I dont know this project: ${_project}`);
     return;
@@ -91,6 +92,11 @@ const lock = async (argString, user_name, say) => {
   
   if(!store[_project][_env]) {
     await say(`❌ ${_project} doesn't have env called ${_env}`);
+    return;
+  }
+  
+  if(_time <= 0 || _time > 360) {
+    await say(`❌ Time must be > 0 and < 360`);
     return;
   }
   
@@ -157,6 +163,8 @@ app.command('/unlock', async ({ command, ack, say }) => {
   current.user = "";
   current.busy = false;
   current.timestamp = 0;
+  await saveToDB();
+  
   await updateAllStates();
   
   await say(getMessage(store))

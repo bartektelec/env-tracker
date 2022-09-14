@@ -61,7 +61,7 @@ module.exports = (state) =>  {
      
        section.fields.push({
 					"type": "plain_text",
-					"text": `${eVal.busy ? "🔴 " : "🟢 Free"}` + `${eVal.busy ? `${eVal.user} until ${getParsedTime(eVal.timestamp)} (getParsedTime(eVal.timestamp - now) remaining)` : ""}`,
+					"text": `${eVal.busy ? "🔴 " : "🟢 Free"}` + `${eVal.busy ? `${eVal.user} until ${getParsedTime(eVal.timestamp)}` : ""}`,
 					"emoji": true
 				});
    })
