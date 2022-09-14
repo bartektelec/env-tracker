@@ -11,20 +11,7 @@ const app = new App({
 const initDb = async () => {
   await dbclient.connect();
   
-//   for await(const p of projects) {
-    
-//     for await(const e of envs) {
-      
-//       await dbclient.hSet(p, e, JSON.stringify(createEnv()));
-       
-//     }
-    
-//   }
-  
-  
   await getFromDB();
-  
-  
 }
 
 const getFromDB = async () => {

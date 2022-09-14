@@ -48,6 +48,8 @@ module.exports = (state) =>  {
 				}],
    };
    
+   const now = Date.now();
+   
    
    Object.entries(pVal).forEach(([eKey, eVal]) => {
      
@@ -59,7 +61,7 @@ module.exports = (state) =>  {
      
        section.fields.push({
 					"type": "plain_text",
-					"text": `${eVal.busy ? "🔴 " : "🟢 Free"}` + `${eVal.busy ? `${eVal.user} until ${getParsedTime(eVal.timestamp)}` : ""}`,
+					"text": `${eVal.busy ? "🔴 " : "🟢 Free"}` + `${eVal.busy ? `${eVal.user} until ${getParsedTime(eVal.timestamp)} (getParsedTime(eVal.timestamp - now) remaining)` : ""}`,
 					"emoji": true
 				});
    })
