@@ -46,7 +46,6 @@ const getCurrentStatus = () => separator + "‼️ Current status ‼️" + sepa
 const updateAllStates = async () => {
   await getFromDB();
   
-  
   Object.entries(store).forEach(([key, val]) => {
     
     Object.entries(val).forEach(([eKey, eVal]) => {
@@ -63,6 +62,7 @@ const updateAllStates = async () => {
   
   await saveToDB();
 }
+
 
 app.command('/lock', async ({ command, ack, client, say }) => {
   // Acknowledge command request

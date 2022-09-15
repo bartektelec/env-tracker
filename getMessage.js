@@ -29,6 +29,13 @@ module.exports = (state) =>  {
           "text": `Type */unlock [project] [env]* to unlock`,
         }
       },
+     {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": `Type */info [project?] [env?]* to show the current status`,
+        }
+      },
  ]
  
  
