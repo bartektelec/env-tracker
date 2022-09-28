@@ -74,7 +74,7 @@ app.command('/lock', async ({ command, ack, client, say }) => {
 const lock = async (argString, user_name, say) => {
   await updateAllStates();
   
-  const args = argString.split(" ");
+  const args = argString.toLowerCase().split(" ");
   
   if(args.length < 2) {
     say("❌ Specify project, env");
@@ -141,7 +141,7 @@ app.command('/unlock', async ({ command, ack, say }) => {
   
   const {user_name, text} = command;
   
-  const [p, e] = text.split(" ");
+  const [p, e] = text.toLowerCase().split(" ");
   
   if(!e) {
     await say(`❌ Which env do you want to unlock, ${user_name}?`);
