@@ -19,7 +19,14 @@ module.exports = (state) =>  {
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": `Type */lock [project] [env] [minutes (default: 30)]* to lock`,
+          "text": "Type */lock [project] [env] [minutes (default: 30)]* to lock",
+        }
+      },
+   {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "i.e `/lock pg.client staging 60`",
         }
       },
      {
