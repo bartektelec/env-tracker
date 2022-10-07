@@ -64,7 +64,7 @@ const getCurrentStatus = () =>
 
 const updateAllStates = async () => {
   await getFromDB();
-
+  
   const emptyStore = projects.reduce(
     (pAcc, pCurr) => ({
       ...pAcc,
@@ -81,7 +81,9 @@ const updateAllStates = async () => {
   Object.entries(store).forEach(([key, val]) => {
     Object.entries(val).forEach(([eKey, eVal]) => {
       if (Date.now() >= eVal.timestamp) {
-        eVal = getEmptyState();
+        eVal.timestamp = 0;
+        eVal.user = ""
+        eVal.busy = false;
       }
     });
   });
