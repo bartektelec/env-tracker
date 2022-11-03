@@ -232,7 +232,7 @@ app.command("/info", async ({ command, ack, say }) => {
   await updateAllStates();
 
   if (!command.text) {
-    await say(getCurrentStatus());
+    await say(getMessage(store));
     return;
   }
 
