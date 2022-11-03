@@ -6,6 +6,27 @@ const dbclient = require("./db.js");
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
+  customRoutes: [
+    {
+      path: '/health-check',
+      method: ['GET'],
+      handler: (req, res) => {
+        res.writeHead(200);
+        res.end('Health check information goes here!');
+      },
+    },
+    {
+      path: '/lock',
+      method: ['GET'],
+      handler: (req, res) => {
+        const params = new URLSearchParams(req.url);
+        console.log(params.get('user'));
+        res.writeHead(200);
+        res.end('Health check information goes here!');
+      },
+    },
+    ]
+
 });
 
 const initDb = async () => {
